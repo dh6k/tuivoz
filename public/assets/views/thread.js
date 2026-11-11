@@ -4,7 +4,8 @@ import { app, state } from '../core/dom.js';
 import { esc, num } from '../core/utils.js';
 import { threadPath, forumPath, userPath, withPage } from '../core/paths.js';
 import { currentPage, navigate, keepCurrentScroll } from '../core/nav.js';
-import { ICON_EYE_ON, ICON_EYE_OFF, ICON_USER } from '../core/icons.js';
+import { ICON_EYE_ON, ICON_EYE_OFF, ICON_USER, ICON_REPLY } from '../core/icons.js';
+import { avatarMarkup } from '../lib/avatar.js';
 import { api, ApiError } from '../api.js';
 import { setActiveNav, setBreadcrumbs } from '../ui/chrome.js';
 import { setThreadTitle } from '../ui/title.js';
@@ -57,6 +58,21 @@ function focusReplyEnd() {
   if (!textarea) return;
   textarea.focus();
   textarea.dispatchEvent(new Event('editor:focus-end'));
+}
+
+// voz.vn gives the quick reply the same left column as a post: the reader's avatar plus the arrow that points at
+// the editor.
+function quickReplyUserHtml() {
+  const me = state.me;
+  const avatar = `<a ${me ? `href="${userPath(me)}" data-member-id="${Number(me.user_id)}"` : ''} class="avatar avatar--m" aria-label="${esc(me?.username || 'Khách')}">${avatarMarkup(me, 'm')}</a>`;
+  return `<div class="message-cell message-cell--user">
+                          <div class="message-user">
+                            <div class="message-avatar">
+                              <div class="message-avatar-wrapper">${avatar}</div>
+                            </div>
+                            <span class="message-userArrow"></span>
+                          </div>
+                        </div>`;
 }
 
 function wireSignatureToggles(root) {
@@ -147,18 +163,32 @@ export async function viewThread(threadId, page, focusPost) {
           </div>
         </div>
       </div>
-      <div class="block" id="reply-block">
-        <div class="block-header">Trả lời</div>
-        <div class="block-body block-body--pad">
-          ${
-            canReply
-              ? `<form id="reply-form">
-                   ${editorHtml('reply-message', '', 'Nội dung trả lời (BBCode)…')}
-                   <div class="reply-submit-row"><button class="button button--primary" type="submit">Gửi trả lời</button></div>
-                 </form>`
-              : `<p class="u-dimmed">Bạn không thể trả lời chủ đề này${state.loggedIn ? '' : ' — <a href="/login">đăng nhập</a>'}.</p>`
-          }
-        </div>
+      <div id="reply-block">
+        ${
+          canReply
+            ? `<form id="reply-form" class="block js-quickReply">
+                 <div class="block-container">
+                   <div class="block-body">
+                     <div class="message message--quickReply block-topRadiusContent block-bottomRadiusContent">
+                       <div class="message-inner">
+                         ${quickReplyUserHtml()}
+                         <div class="message-cell message-cell--main">
+                           <div class="message-editorWrapper">
+                             ${editorHtml('reply-message', '', 'Nội dung trả lời (BBCode)…')}
+                             <div class="formButtonGroup">
+                               <div class="formButtonGroup-primary">
+                                 <button class="button button--icon button--icon--reply button--primary" type="submit">${ICON_REPLY}<span class="button-text">Gửi trả lời</span></button>
+                               </div>
+                             </div>
+                           </div>
+                         </div>
+                       </div>
+                     </div>
+                   </div>
+                 </div>
+               </form>`
+            : `<div class="block"><div class="block-body block-body--pad"><p class="u-dimmed">Bạn không thể trả lời chủ đề này${state.loggedIn ? '' : ' — <a href="/login">đăng nhập</a>'}.</p></div></div>`
+        }
       </div>`;
 
     wireEditor(app);
@@ -395,8 +425,9 @@ function wireThreadActions(threadId, posts, thread, page = 1) {
       const message = textarea.value.trim();
       if (!message) return toast('Nội dung trống', true);
       const submit = form.querySelector('button[type=submit]');
+      const submitLabel = submit.querySelector('.button-text') || submit;
       submit.disabled = true;
-      submit.textContent = 'Đang gửi…';
+      submitLabel.textContent = 'Đang gửi…';
       try {
         const body = { thread_id: threadId, message };
         const res = await fetch('/api/xf/posts/', {
@@ -414,7 +445,7 @@ function wireThreadActions(threadId, posts, thread, page = 1) {
       } catch (err) {
         toast(err.message || 'Gửi thất bại', true);
         submit.disabled = false;
-        submit.textContent = 'Gửi trả lời';
+        submitLabel.textContent = 'Gửi trả lời';
       }
     });
   }

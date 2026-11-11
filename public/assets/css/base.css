@@ -52,6 +52,12 @@
   --surface-code: #edf0f5;         /* <pre> and atomic BBCode blocks */
   --surface-editor-panel: #f4f6fb;
   --surface-quote: #eef3f9;        /* blockquote inside the editor preview */
+  --editor-bg: #eff0f0;            /* editor surface, one step below --content-bg like voz.vn */
+  --editor-more-bg: #e7e8e9;       /* the expanding "more" row inside the toolbar */
+  --editor-submit-bg: #407bc9;     /* popup action button, sampled from voz.vn */
+  --editor-submit-hover: #3569ad;
+  --editor-button-fg: rgba(18, 38, 64, .85);
+  --editor-button-hover-bg: rgba(64, 123, 201, .15);
   --border-code: #a3adc0;
   --border-atomic: #8999b4;
 
@@ -135,6 +141,12 @@
   --surface-code: #25292a;
   --surface-editor-panel: #252829;
   --surface-quote: #292e2f;
+  --editor-bg: #1b1e1f;
+  --editor-more-bg: #17191a;
+  --editor-submit-bg: #407bc9;
+  --editor-submit-hover: #3569ad;
+  --editor-button-fg: #c8ced8;
+  --editor-button-hover-bg: rgba(138, 180, 248, .18);
   --border-code: #4b5354;
   --border-atomic: #5a6364;
 

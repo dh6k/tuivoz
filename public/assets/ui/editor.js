@@ -178,13 +178,38 @@ function wireOneEditor(editor) {
       editor.querySelector('[data-tool="redo"]').disabled = position === history.length - 1;
     };
     const closeMenus = () => {
-      for (const menu of editor.querySelectorAll('[data-menu-panel]')) menu.hidden = true;
-      for (const toggle of editor.querySelectorAll('[data-menu]')) toggle.setAttribute('aria-expanded', 'false');
+      for (const menu of editor.querySelectorAll('[data-menu-panel]')) {
+        menu.hidden = true;
+        menu.style.height = '';
+        menu.classList.remove('is-open');
+      }
+      for (const toggle of editor.querySelectorAll('[data-menu]')) {
+        toggle.setAttribute('aria-expanded', 'false');
+        toggle.classList.remove('is-open');
+      }
+    };
+    // voz.vn slides the extra buttons open as a second row inside the toolbar; the height is animated so the
+    // editor below moves down smoothly instead of jumping.
+    const openMenu = (toggle, menu) => {
+      menu.hidden = false;
+      const height = menu.scrollHeight;
+      menu.style.height = '0px';
+      requestAnimationFrame(() => {
+        menu.classList.add('is-open');
+        menu.style.height = `${height}px`;
+      });
     };
     const closePanel = () => {
       panel.hidden = true; panel.replaceChildren(); delete panel.dataset.panelKind;
       for (const tool of editor.querySelectorAll('[data-tool][aria-expanded="true"]')) tool.setAttribute('aria-expanded', 'false');
     };
+    // The emoji popup sits under the toolbar, whose height changes when the buttons wrap on narrow screens.
+    const syncPanelOffset = () => {
+      const toolbar = editor.querySelector('.editor-toolbar');
+      if (toolbar) editor.style.setProperty('--editor-toolbar-h', `${Math.round(toolbar.getBoundingClientRect().height)}px`);
+    };
+    syncPanelOffset();
+    if (typeof ResizeObserver === 'function') new ResizeObserver(syncPanelOffset).observe(editor.querySelector('.editor-toolbar'));
     panel.addEventListener('editor:panel-close', closePanel);
     const outsidePointer = (event) => {
       if (!editor.isConnected) { document.removeEventListener('pointerdown', outsidePointer); return; }
@@ -197,6 +222,12 @@ function wireOneEditor(editor) {
         const toggle = editor.querySelector('[data-menu][aria-expanded="true"]');
         closeMenus(); closePanel(); toggle?.focus();
       }
+    });
+    // A closed row keeps a stale pixel height, so the next open would start from the wrong value.
+    editor.addEventListener('transitionend', (event) => {
+      if (event.propertyName !== 'height') return;
+      const menu = event.target.closest?.('[data-menu-panel]');
+      if (menu && !menu.hidden && menu.classList.contains('is-open')) menu.style.height = 'auto';
     });
     editor.addEventListener('pointerdown', (event) => { if (event.target.closest('.editor-toolbar')) { rememberSelection(); if (event.target.closest('button')) event.preventDefault(); } });
     for (const surface of [visual, textarea]) {
@@ -297,8 +328,11 @@ function wireOneEditor(editor) {
       const toggle = event.target.closest('[data-menu]');
       if (toggle) {
         const menu = editor.querySelector(`[data-menu-panel="${toggle.dataset.menu}"]`);
-        const opening = menu.hidden; closeMenus(); closePanel();
-        menu.hidden = !opening; toggle.setAttribute('aria-expanded', String(opening));
+        const opening = menu.hidden;
+        closeMenus(); closePanel();
+        if (opening) openMenu(toggle, menu);
+        toggle.setAttribute('aria-expanded', String(opening));
+        toggle.classList.toggle('is-open', opening);
         return;
       }
       const button = event.target.closest('[data-tool]'); if (!button) return;

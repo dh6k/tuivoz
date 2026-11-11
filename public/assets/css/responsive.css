@@ -38,6 +38,8 @@
   .message { border-radius: 0; }
   .block-outer { padding-left: 12px; padding-right: 12px; }
   .block--messages > .block-header { padding-left: 12px; padding-right: 12px; }
+  /* voz.vn drops the avatar column from the quick reply on phones. */
+  .js-quickReply .message-cell--user { display: none; }
 }
 @media (max-width: 620px) {
   .block--messages .pageNav a.pageNav-author { display: none; }
